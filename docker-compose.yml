@@ -1,18 +1,22 @@
 services:
+  # 1. Cơ sở dữ liệu MySQL 8.0
   db:
     image: mysql:8.0
     container_name: ecommerce_db
     restart: always
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-supersecretroot}
+      MYSQL_DATABASE: ${DB_NAME:-ecommerce_db}
+      MYSQL_USER: ${DB_USER:-ecommerce_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-ecommerce_pass}
     volumes:
       - db_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - backend
 
+  # 2. Ứng dụng Bán hàng Node.js (Web Frontend + RESTful API + Prometheus Metrics)
   app:
     build: ./app
     container_name: ecommerce_app
@@ -20,9 +24,9 @@ services:
     environment:
       PORT: 3000
       DB_HOST: db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER:-ecommerce_user}
+      DB_PASSWORD: ${DB_PASSWORD:-ecommerce_pass}
+      DB_NAME: ${DB_NAME:-ecommerce_db}
     depends_on:
       - db
     networks:
@@ -30,6 +34,7 @@ services:
       - backend
       - monitoring
 
+  # 3. Nginx Reverse Proxy (HTTPS SSL tự ký, Security Hardening, JSON Logging)
   nginx:
     image: nginx:alpine
     container_name: ecommerce_nginx
@@ -43,9 +48,11 @@ services:
       - nginx_logs:/var/log/nginx
     depends_on:
       - app
+      - phpmyadmin
     networks:
       - frontend
 
+  # 4. phpMyAdmin (Quản trị trực quan Cơ sở dữ liệu MySQL qua giao diện Web)
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     container_name: ecommerce_phpmyadmin
@@ -60,6 +67,7 @@ services:
       - frontend
       - backend
 
+  # 5. Prometheus (Hệ thống thu thập và lưu trữ time-series metrics)
   prometheus:
     image: prom/prometheus:latest
     container_name: ecommerce_prometheus
@@ -72,6 +80,7 @@ services:
     networks:
       - monitoring
 
+  # 6. cAdvisor (Giám sát tài nguyên phần cứng, CPU, RAM, Network I/O của Container)
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: ecommerce_cadvisor
@@ -86,6 +95,7 @@ services:
     networks:
       - monitoring
 
+  # 7. Grafana Loki (Lưu trữ và lập chỉ mục Log tập trung theo nhãn)
   loki:
     image: grafana/loki:latest
     container_name: ecommerce_loki
@@ -98,6 +108,7 @@ services:
     networks:
       - monitoring
 
+  # 8. Promtail (Thu thập Log Nginx và App Docker containers gửi về Loki theo thời gian thực)
   promtail:
     image: grafana/promtail:latest
     container_name: ecommerce_promtail
@@ -111,6 +122,7 @@ services:
     networks:
       - monitoring
 
+  # 9. Grafana Dashboard (Trực quan hóa đồ thị Metrics và LogQL tập trung)
   grafana:
     image: grafana/grafana:latest
     container_name: ecommerce_grafana
@@ -119,6 +131,7 @@ services:
       - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - prometheus
       - loki

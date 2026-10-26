@@ -9,10 +9,48 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
+  # 1. Thu thập và parse log Nginx (Access log JSON & Error log)
   - job_name: nginx
     static_configs:
       - targets:
           - localhost
         labels:
           job: nginx
+          env: production
           __path__: /var/log/nginx/*log
+    pipeline_stages:
+      - match:
+          selector: '{job="nginx"}'
+          stages:
+            - json:
+                expressions:
+                  time_local: time_local
+                  remote_addr: remote_addr
+                  request_method: request_method
+                  request_uri: request_uri
+                  status: status
+                  body_bytes_sent: body_bytes_sent
+                  request_time: request_time
+                  upstream_addr: upstream_addr
+                  upstream_response_time: upstream_response_time
+                  http_user_agent: http_user_agent
+            - labels:
+                status:
+                request_method:
+
+  # 2. Thu thập Docker container logs (bao gồm Node.js application container)
+  - job_name: docker-containers
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*-json.log
+    pipeline_stages:
+      - json:
+          expressions:
+            log: log
+            stream: stream
+            time: time
+      - output:
+          source: log

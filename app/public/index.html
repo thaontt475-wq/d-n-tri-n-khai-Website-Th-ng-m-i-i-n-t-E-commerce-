@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICTU TechStore - Hệ Thống Thương Mại Điện Tử & Giám Sát</title>
+  <meta name="description" content="Đề tài 9: Website Thương mại điện tử tích hợp Prometheus, Grafana, Loki, Nginx SSL và MySQL - Đại học CNTT & TT Thái Nguyên">
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- HEADER & NAVIGATION -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand-group">
+        <a href="/" class="brand-logo">
+          <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="logo-text">
+            <span class="logo-title">ICTU TechStore</span>
+            <span class="logo-subtitle">E-Commerce & Monitoring Hub</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="search-bar">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Tìm kiếm iPhone, MacBook, bàn phím, tai nghe...">
+        <button id="clearSearchBtn" class="clear-btn" style="display: none;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Nav Actions -->
+      <div class="nav-actions">
+        <!-- Monitoring Links Dropdown -->
+        <div class="dropdown">
+          <button class="nav-btn nav-btn-outline" id="monitoringBtn">
+            <i class="fa-solid fa-chart-line text-primary"></i>
+            <span>Giám sát</span>
+            <i class="fa-solid fa-chevron-down text-xs"></i>
+          </button>
+          <div class="dropdown-menu">
+            <div class="dropdown-header">Hệ thống Giám sát & Quản trị</div>
+            <a href="http://localhost:3001" target="_blank" class="dropdown-item">
+              <i class="fa-solid fa-chart-pie text-orange"></i>
+              <div>
+                <strong>Grafana Dashboard</strong>
+                <small>Cổng 3001 (Metrics & LogQL)</small>
+              </div>
+            </a>
+            <a href="http://localhost:9090" target="_blank" class="dropdown-item">
+              <i class="fa-solid fa-fire text-red"></i>
+              <div>
+                <strong>Prometheus Metrics</strong>
+                <small>Cổng 9090 (Time-series data)</small>
+              </div>
+            </a>
+            <a href="/metrics" target="_blank" class="dropdown-item">
+              <i class="fa-solid fa-code text-blue"></i>
+              <div>
+                <strong>App /metrics Endpoint</strong>
+                <small>Prometheus Raw Metrics</small>
+              </div>
+            </a>
+            <a href="/phpmyadmin/" target="_blank" class="dropdown-item">
+              <i class="fa-solid fa-database text-yellow"></i>
+              <div>
+                <strong>phpMyAdmin</strong>
+                <small>Quản trị MySQL Database</small>
+              </div>
+            </a>
+            <a href="http://localhost:8080" target="_blank" class="dropdown-item">
+              <i class="fa-solid fa-server text-green"></i>
+              <div>
+                <strong>cAdvisor</strong>
+                <small>Cổng 8080 (Container Metrics)</small>
+              </div>
+            </a>
+            <a href="/health" target="_blank" class="dropdown-item">
+              <i class="fa-solid fa-heart-pulse text-emerald"></i>
+              <div>
+                <strong>Health Check</strong>
+                <small>Kiểm tra trạng thái Service</small>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <button class="nav-btn nav-btn-outline" id="viewOrdersBtn">
+          <i class="fa-solid fa-receipt"></i>
+          <span>Đơn hàng</span>
+        </button>
+
+        <button class="nav-btn nav-btn-outline" id="adminAddProductBtn">
+          <i class="fa-solid fa-plus-circle"></i>
+          <span>Thêm SP</span>
+        </button>
+
+        <!-- Shopping Cart Trigger Button -->
+        <button class="nav-btn nav-btn-primary cart-trigger-btn" id="openCartBtn">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span>Giỏ hàng</span>
+          <span class="cart-badge" id="cartBadge">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="main-wrapper">
+    <!-- HERO BANNER -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-tag">
+          <span class="pulse-dot"></span>
+          ĐỀ TÀI 9 • ĐẠI HỌC CNTT & TT THÁI NGUYÊN (ICTU)
+        </div>
+        <h1 class="hero-title">Website Thương Mại Điện Tử & Hệ Thống Giám Sát Tập Trung</h1>
+        <p class="hero-desc">
+          Triển khai toàn diện trên nền tảng Docker Compose: Nginx Reverse Proxy SSL Hardening, Node.js RESTful API, MySQL 8.0, phpMyAdmin, Prometheus, cAdvisor, Loki và Grafana.
+        </p>
+
+        <!-- Tech Stack Badges -->
+        <div class="tech-pills">
+          <span class="pill"><i class="fa-brands fa-node-js text-green"></i> Node.js</span>
+          <span class="pill"><i class="fa-solid fa-database text-blue"></i> MySQL 8.0</span>
+          <span class="pill"><i class="fa-solid fa-shield-halved text-emerald"></i> Nginx SSL</span>
+          <span class="pill"><i class="fa-solid fa-fire text-red"></i> Prometheus</span>
+          <span class="pill"><i class="fa-solid fa-chart-simple text-orange"></i> cAdvisor</span>
+          <span class="pill"><i class="fa-solid fa-file-lines text-cyan"></i> Loki & Promtail</span>
+          <span class="pill"><i class="fa-solid fa-gauge-high text-yellow"></i> Grafana</span>
+        </div>
+      </div>
+
+      <!-- Live KPI Stats Bar -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-blue-subtle text-blue">
+            <i class="fa-solid fa-boxes-stacked"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Tổng sản phẩm</span>
+            <span class="kpi-value" id="statProducts">--</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-green-subtle text-green">
+            <i class="fa-solid fa-bag-shopping"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Đơn hàng thành công</span>
+            <span class="kpi-value" id="statOrders">--</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-purple-subtle text-purple">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Doanh thu hệ thống</span>
+            <span class="kpi-value" id="statRevenue">-- ₫</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-emerald-subtle text-emerald">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Trạng thái Nginx SSL</span>
+            <span class="kpi-value text-emerald">TLSv1.3 Active</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRODUCT CATALOG CONTROLS -->
+    <section class="catalog-section">
+      <div class="catalog-header">
+        <div class="category-tabs" id="categoryTabs">
+          <button class="tab-btn active" data-category="all">Tất cả sản phẩm</button>
+          <!-- Dynamic category tabs loaded via API -->
+        </div>
+
+        <div class="sort-selector">
+          <label for="sortSelect"><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp xếp:</label>
+          <select id="sortSelect">
+            <option value="newest">Mới nhất</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PRODUCT GRID -->
+      <div class="product-grid" id="productGrid">
+        <div class="loading-state">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <p>Đang tải danh sách sản phẩm từ MySQL Database...</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- SHOPPING CART SLIDE-OVER DRAWER -->
+  <div class="drawer-backdrop" id="cartBackdrop">
+    <div class="cart-drawer" id="cartDrawer">
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <i class="fa-solid fa-cart-shopping text-primary"></i>
+          <span>Giỏ Hàng Của Bạn</span>
+          <span class="drawer-count" id="drawerCartCount">(0)</span>
+        </div>
+        <button class="close-btn" id="closeCartBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="drawer-body" id="cartItemsContainer">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="drawer-footer" id="cartFooter">
+        <div class="cart-summary-line">
+          <span>Tạm tính:</span>
+          <strong id="cartSubtotal">0 ₫</strong>
+        </div>
+        <div class="cart-summary-line">
+          <span>Phí vận chuyển:</span>
+          <span class="text-green font-medium">Miễn phí toàn quốc</span>
+        </div>
+        <div class="cart-summary-line total-line">
+          <span>Tổng thanh toán:</span>
+          <strong class="total-price" id="cartTotal">0 ₫</strong>
+        </div>
+        <button class="checkout-btn" id="proceedToCheckoutBtn" disabled>
+          <i class="fa-solid fa-lock"></i>
+          <span>Tiến hành Đặt hàng</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKOUT MODAL -->
+  <div class="modal-backdrop" id="checkoutModalBackdrop">
+    <div class="modal checkout-modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-shield-heart text-primary"></i>
+          <span>Xác Nhận Đặt Hàng & Thanh Toán</span>
+        </div>
+        <button class="close-btn" id="closeCheckoutBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="checkoutForm" class="modal-body checkout-form-grid">
+        <div class="form-section">
+          <h3 class="form-section-title"><i class="fa-solid fa-user"></i> Thông tin người nhận</h3>
+          
+          <div class="form-group">
+            <label for="custName">Họ và tên <span class="required">*</span></label>
+            <input type="text" id="custName" required placeholder="Ví dụ: Nguyễn Văn An">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="custPhone">Số điện thoại <span class="required">*</span></label>
+              <input type="tel" id="custPhone" required placeholder="0912345678">
+            </div>
+            <div class="form-group">
+              <label for="custEmail">Email</label>
+              <input type="email" id="custEmail" placeholder="an.nguyen@ictu.edu.vn">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="custAddress">Địa chỉ nhận hàng <span class="required">*</span></label>
+            <input type="text" id="custAddress" required placeholder="Số nhà, đường, phường/xã, quận/huyện...">
+          </div>
+
+          <div class="form-group">
+            <label for="paymentMethod">Phương thức thanh toán</label>
+            <select id="paymentMethod">
+              <option value="COD">Thanh toán khi nhận hàng (COD)</option>
+              <option value="BANK_TRANSFER">Chuyển khoản Ngân hàng / QR Code</option>
+              <option value="MOMO">Ví MoMo / VNPay</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="orderNotes">Ghi chú giao hàng</label>
+            <textarea id="orderNotes" rows="2" placeholder="Giao trong giờ hành chính, gọi trước khi đến..."></textarea>
+          </div>
+        </div>
+
+        <div class="order-review-section">
+          <h3 class="form-section-title"><i class="fa-solid fa-receipt"></i> Đơn hàng của bạn</h3>
+          <div class="mini-order-items" id="checkoutOrderItems">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="order-review-totals">
+            <div class="review-line">
+              <span>Tổng tiền hàng:</span>
+              <span id="reviewSubtotal">0 ₫</span>
+            </div>
+            <div class="review-line">
+              <span>Vận chuyển:</span>
+              <span class="text-green">0 ₫</span>
+            </div>
+            <div class="review-line total">
+              <span>Tổng cộng:</span>
+              <strong id="reviewTotal">0 ₫</strong>
+            </div>
+          </div>
+          <button type="submit" class="submit-order-btn" id="confirmOrderBtn">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>Hoàn Tất Đặt Hàng</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ORDER SUCCESS MODAL -->
+  <div class="modal-backdrop" id="successModalBackdrop">
+    <div class="modal success-modal">
+      <div class="success-icon-wrap">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h2>Đặt Hàng Thành Công!</h2>
+      <p>Cảm ơn bạn đã mua sắm tại ICTU TechStore. Yêu cầu đặt hàng đã được ghi nhận vào Cơ sở dữ liệu MySQL và cập nhật Prometheus Metrics.</p>
+      
+      <div class="success-details">
+        <div class="success-line">
+          <span>Mã đơn hàng:</span>
+          <strong class="text-primary" id="successOrderId">#--</strong>
+        </div>
+        <div class="success-line">
+          <span>Tổng tiền:</span>
+          <strong id="successTotal">-- ₫</strong>
+        </div>
+      </div>
+
+      <div class="success-actions">
+        <button class="nav-btn nav-btn-primary" id="successViewOrdersBtn">Xem Danh Sách Đơn Hàng</button>
+        <button class="nav-btn nav-btn-outline" id="successContinueShoppingBtn">Tiếp Tục Mua Sắm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERS LIST MODAL -->
+  <div class="modal-backdrop" id="ordersModalBackdrop">
+    <div class="modal orders-modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-clipboard-list text-primary"></i>
+          <span>Quản Lý Đơn Hàng Hệ Thống</span>
+        </div>
+        <button class="close-btn" id="closeOrdersBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Mã ĐH</th>
+                <th>Khách hàng</th>
+                <th>Số điện thoại</th>
+                <th>Tổng tiền</th>
+                <th>Ngày đặt</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+              <tr>
+                <td colspan="7" class="text-center">Đang tải danh sách đơn hàng...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN ADD PRODUCT MODAL -->
+  <div class="modal-backdrop" id="addProductModalBackdrop">
+    <div class="modal admin-modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-box-open text-primary"></i>
+          <span>Thêm Sản Phẩm Mới Vào Kho (Admin)</span>
+        </div>
+        <button class="close-btn" id="closeAddProductBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="addProductForm" class="modal-body form-stacked">
+        <div class="form-group">
+          <label for="prodName">Tên sản phẩm <span class="required">*</span></label>
+          <input type="text" id="prodName" required placeholder="Ví dụ: iPad Pro M4 11 inch 256GB">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="prodCategory">Danh mục <span class="required">*</span></label>
+            <select id="prodCategory" required>
+              <option value="1">Laptop & Máy tính</option>
+              <option value="2">Điện thoại & Tablet</option>
+              <option value="3">Phụ kiện công nghệ</option>
+              <option value="4">Âm thanh & Tai nghe</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="prodPrice">Giá bán (VND) <span class="required">*</span></label>
+            <input type="number" id="prodPrice" required min="1000" placeholder="Ví dụ: 24500000">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="prodStock">Số lượng tồn kho <span class="required">*</span></label>
+            <input type="number" id="prodStock" required min="0" value="10">
+          </div>
+          <div class="form-group">
+            <label for="prodImage">URL Ảnh minh họa</label>
+            <input type="url" id="prodImage" placeholder="https://images.unsplash.com/...">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="prodDesc">Mô tả chi tiết sản phẩm</label>
+          <textarea id="prodDesc" rows="3" placeholder="Nhập cấu hình, tính năng nổi bật..."></textarea>
+        </div>
+
+        <button type="submit" class="submit-order-btn" id="saveProductBtn">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Lưu Sản Phẩm Vào CSDL</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-col">
+        <div class="brand-group">
+          <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+          <span class="logo-title text-white">ICTU TechStore</span>
+        </div>
+        <p class="footer-text">
+          Đề tài 9: Triển khai Website Thương Mại Điện Tử & Hệ Thống Giám Sát Tập Trung.<br>
+          Khoa Công nghệ Thông tin - Trường Đại học Công nghệ Thông tin & Truyền thông - Đại học Thái Nguyên.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">Cổng Dịch Vụ Hệ Thống</h4>
+        <ul class="footer-links">
+          <li><a href="https://localhost/" target="_blank"><i class="fa-solid fa-shield-halved"></i> Nginx HTTPS Proxy (Port 443)</a></li>
+          <li><a href="https://localhost/phpmyadmin/" target="_blank"><i class="fa-solid fa-database"></i> phpMyAdmin Dashboard</a></li>
+          <li><a href="http://localhost:3001" target="_blank"><i class="fa-solid fa-chart-pie"></i> Grafana Monitoring (Port 3001)</a></li>
+          <li><a href="http://localhost:9090" target="_blank"><i class="fa-solid fa-fire"></i> Prometheus Metrics (Port 9090)</a></li>
+          <li><a href="http://localhost:8080" target="_blank"><i class="fa-solid fa-server"></i> cAdvisor Container Stats (Port 8080)</a></li>
+          <li><a href="http://localhost:3100" target="_blank"><i class="fa-solid fa-file-waveform"></i> Loki Log Collector (Port 3100)</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">Tính Năng Bảo Mật (Hardening)</h4>
+        <ul class="footer-badges">
+          <li><i class="fa-solid fa-check text-green"></i> TLS 1.2 / TLS 1.3 Encryption</li>
+          <li><i class="fa-solid fa-check text-green"></i> HTTP Strict Transport Security (HSTS)</li>
+          <li><i class="fa-solid fa-check text-green"></i> X-Content-Type-Options: nosniff</li>
+          <li><i class="fa-solid fa-check text-green"></i> X-Frame-Options: SAMEORIGIN</li>
+          <li><i class="fa-solid fa-check text-green"></i> Promtail JSON Log Pipeline</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Đồ án tốt nghiệp / Bài tập lớn ICTU - Đề 9: E-Commerce System & Monitoring.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
